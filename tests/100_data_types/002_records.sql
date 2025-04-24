@@ -1,0 +1,55 @@
+-- Insert sample persons
+INSERT INTO persons (name) VALUES
+('John Doe'),
+('Jane Smith');
+
+-- Insert sample cars with various data types
+INSERT INTO cars (
+    owner_id,
+    make,
+    model,
+    production_year,
+    price,
+    mileage,
+    engine_capacity,
+    weight,
+    is_electric,
+    purchase_date,
+    maintenance_time,
+    features,
+    car_numbers,
+    body_color,
+    zero_to_60_seconds,
+    license_plate,
+    ip_address,
+    mac_address,
+    serial_bits,
+    search_vector,
+    geometric_data,
+    constraint_code
+) VALUES
+(1, 'Toyota', 'Camry', 2020, 25000.50, 15000, 2.5, 1560.75, false,
+ '2021-03-15', '08:30:00',
+ '{"navigation": true, "sunroof": false}',
+ ARRAY['ABC-123', 'XYZ-789'], 'blue',
+ INTERVAL '6.2 seconds',
+ '192.168.1.0/24',
+ '192.168.1.1',
+ '08:00:2b:01:02:03',
+ B'101010',
+ to_tsvector('english', 'quick brown fox'),
+ POINT(12.34, 56.78),
+ 123),
+
+(2, 'Tesla', 'Model S', 2022, 95000.00, 5000, NULL, 2100.00, true,
+ '2023-01-10', '10:15:00',
+ '{"autopilot": true, "premium_sound": true}',
+ ARRAY['TES-001', 'ELEC-777'], 'red',
+ INTERVAL '2.3 seconds',
+ '10.0.0.0/8',
+ '10.20.30.40',
+ '00:1a:2b:3c:4d:5e',
+ B'110011',
+ to_tsvector('english', 'electric vehicle'),
+ POINT(90.12, 34.56),
+ 456);
