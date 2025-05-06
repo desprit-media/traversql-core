@@ -19,18 +19,49 @@ This application is currently in a very early build stage and should be used wit
   - `POSTGRES_PASSWORD`
   - `POSTGRES_DB`
 
-## Usage
+## Installation & Usage
 
-The primary command is `traverse`.
+### Development (from cloned repository)
+
+Clone the repository and navigate to the project directory:
 
 ```bash
-go run cmd/main.go traverse [flags]
+git clone https://github.com/desprit-media/traversql-core.git
+cd traversql-core
 ```
 
-Alternatively, you can run released version directly:
+Run the application directly:
 
 ```bash
-go run github.com/desprit-media/traversql-core/cmd@latest traverse [flags]
+go run cmd/traversql/main.go traverse [flags]
+```
+
+### Installation (as a tool)
+
+Install the latest version globally:
+
+```bash
+go install github.com/desprit-media/traversql-core/cmd/traversql@latest
+```
+
+Once installed, you can use the command directly:
+
+```bash
+traversql traverse [flags]
+```
+
+### Usage
+
+The primary command is traverse:
+
+```bash
+traversql traverse [flags]
+```
+
+You can also run the latest version without installation:
+
+```bash
+go run github.com/desprit-media/traversql-core/cmd/traversql@latest traverse [flags]
 ```
 
 **Flags:**
@@ -51,11 +82,11 @@ go run github.com/desprit-media/traversql-core/cmd@latest traverse [flags]
 Traverse records related to the order with ID 1 in the `public.orders` table and save the output to `orders_graph.sql`:
 
 ```bash
-go run cmd/main.go traverse --table orders --primary-key-values 1 --output orders_graph.sql
+traversql traverse --table orders --primary-key-values 1 --output orders_graph.sql
 ```
 
 Traverse records related to a user with a composite primary key (user_id, tenant_id) and print to the console:
 
 ```bash
-go run cmd/main.go traverse --table users --primary-key-fields user_id,tenant_id --primary-key-values 456,abc --follow-children=false
+traversql traverse --table users --primary-key-fields user_id,tenant_id --primary-key-values 456,abc --follow-children=false
 ```
