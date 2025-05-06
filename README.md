@@ -1,6 +1,6 @@
-# TraversQL
+# Traversql
 
-TraversQL allows you to start from a specific record in a database table and traverse through its relationships (both parent and child) to extract a graph of connected records. This can be useful for understanding data dependencies, debugging, or generating test data.
+Traversql allows you to start from a specific record in a database table and traverse through its relationships (both parent and child) to extract a graph of connected records. This can be useful for understanding data dependencies, debugging, or generating test data.
 
 ## Disclaimer
 
