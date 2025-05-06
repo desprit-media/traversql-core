@@ -15,11 +15,12 @@ type Parser struct {
 	config *parserConfig
 	logger *log.Logger
 
-	Tables              []Table
-	Relationships       []Relationship
-	TableToPKColumnsMap map[string][]Column
-	RelationshipVisits  []RelationshipVisit
-	RecordVisits        []RecordVisit
+	TablesWithPrimaryKey    []Table
+	TablesWithoutPrimaryKey []Table
+	Relationships           []Relationship
+	TableToPKColumnsMap     map[string][]Column
+	RelationshipVisits      []RelationshipVisit
+	RecordVisits            []RecordVisit
 }
 
 // Initialize a new parser
@@ -29,22 +30,24 @@ func NewParser(pool *pgxpool.Pool, config *parserConfig) (*Parser, error) {
 		config: config,
 		logger: log.Default(),
 
-		Tables:              make([]Table, 0),
-		Relationships:       make([]Relationship, 0),
-		TableToPKColumnsMap: make(map[string][]Column),
-		RelationshipVisits:  make([]RelationshipVisit, 0),
-		RecordVisits:        make([]RecordVisit, 0),
+		TablesWithPrimaryKey:    make([]Table, 0),
+		TablesWithoutPrimaryKey: make([]Table, 0),
+		Relationships:           make([]Relationship, 0),
+		TableToPKColumnsMap:     make(map[string][]Column),
+		RelationshipVisits:      make([]RelationshipVisit, 0),
+		RecordVisits:            make([]RecordVisit, 0),
 	}
 	ctx := context.Background()
 
-	tables, err := p.discoverTables(ctx)
+	tablesWithPK, tablesWithoutPK, err := p.discoverTables(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract tables: %w", err)
 	}
-	if len(tables) == 0 {
+	if len(tablesWithPK) == 0 {
 		return nil, ErrNoTablesFound
 	}
-	p.Tables = tables
+	p.TablesWithPrimaryKey = tablesWithPK
+	p.TablesWithoutPrimaryKey = tablesWithoutPK
 
 	relationships, err := p.discoverRelationships(ctx)
 	if err != nil {
@@ -55,7 +58,7 @@ func NewParser(pool *pgxpool.Pool, config *parserConfig) (*Parser, error) {
 	}
 	p.Relationships = relationships
 
-	for _, table := range p.Tables {
+	for _, table := range p.TablesWithPrimaryKey {
 		pk, err := p.discoverTablePKColumn(table)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract primary keys for table %s: %w", table.FullName(), err)
@@ -92,6 +95,8 @@ func (p *Parser) BuildGraph(ctx context.Context, table Table, pk PrimaryKey) ([]
 }
 
 func (p *Parser) ExtractGraph(ctx context.Context, table Table, pk PrimaryKey) (string, error) {
+	defer p.Reset()
+
 	records, err := p.BuildGraph(ctx, table, pk)
 	if err != nil {
 		return "", fmt.Errorf("failed to build graph: %w", err)
@@ -153,7 +158,7 @@ func (p *Parser) TraverseParents(ctx context.Context, record Record, records *[]
 			parentRecord, err := p.FetchRecord(ctx, rel.TargetTable, pk)
 			if err != nil {
 				if errors.Is(err, ErrRecordAlreadyVisited) {
-					p.logger.Printf("skipping already visited record")
+					p.logger.Printf("skipping already visited record in table %s, pk %v", rel.TargetTable.Name, pk.Values)
 					continue
 				}
 				return fmt.Errorf("failed to fetch parent record: %w", err)
@@ -204,7 +209,6 @@ func (p *Parser) TraverseChildren(ctx context.Context, record Record, records *[
 			}
 
 			for _, childRecord := range childRecords {
-				p.logger.Printf("Child record found: %v", childRecord)
 				// Add to our records if not already present
 				if !p.recordExists(*records, childRecord) {
 					if p.config.FollowParents {

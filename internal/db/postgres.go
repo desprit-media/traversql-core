@@ -17,6 +17,7 @@ type PostgresConfig struct {
 	Database string
 }
 
+// checkPostgresEnvs verifies that all necessary PostgreSQL environment variables are set.
 func checkPostgresEnvs() error {
 	postgresHost := os.Getenv("POSTGRES_HOST")
 	if postgresHost == "" {
@@ -42,8 +43,10 @@ func checkPostgresEnvs() error {
 	return nil
 }
 
-// GetPostgresConfig retrieves database configuration from environment variables
-func GetPostgresConfig() (PostgresConfig, error) {
+// NewPostgresConfigFromEnvs retrieves database configuration from environment variables
+// and returns a PostgresConfig struct. It also checks if all required environment variables
+// are set before returning the configuration.
+func NewPostgresConfigFromEnvs() (PostgresConfig, error) {
 	config := PostgresConfig{
 		Host:     os.Getenv("POSTGRES_HOST"),
 		Port:     os.Getenv("POSTGRES_PORT"),
@@ -59,7 +62,9 @@ func GetPostgresConfig() (PostgresConfig, error) {
 	return config, nil
 }
 
-// InitPostgresPool creates and initializes a PostgreSQL connection pool
+// InitPostgresPool creates and initializes a PostgreSQL connection pool using the provided configuration.
+// ctx: The context for the pool initialization and ping check.
+// config: The PostgresConfig containing the database connection parameters.
 func InitPostgresPool(ctx context.Context, config PostgresConfig) (*pgxpool.Pool, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		config.User, config.Password, config.Host, config.Port, config.Database)
@@ -68,9 +73,6 @@ func InitPostgresPool(ctx context.Context, config PostgresConfig) (*pgxpool.Pool
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse pool config: %v", err)
 	}
-
-	// You can customize pool settings here
-	// poolConfig.MaxConns = 10
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {

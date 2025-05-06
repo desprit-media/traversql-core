@@ -3,19 +3,101 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/urfave/cli/v3"
 
 	"github.com/desprit-media/traversql-core/internal/db"
 	"github.com/desprit-media/traversql-core/internal/parser"
 )
 
+// createPK constructs a parser.PrimaryKey from the provided primary key fields and values.
+// It attempts to convert values to integers if possible.
+// pkFields: Slice of primary key field names.
+// pkValues: Slice of primary key values (as strings).
+func createPK(pkFields []string, pkValues []string) (parser.PrimaryKey, error) {
+	columns := make([]parser.Column, len(pkFields))
+	for i, pkField := range pkFields {
+		columns[i] = parser.Column{Name: pkField}
+	}
+	values := make([]interface{}, len(pkFields))
+	for i, pkValue := range pkValues {
+		pkValueInt, err := strconv.Atoi(pkValue)
+		if err != nil {
+			values[i] = pkValue
+		} else {
+			values[i] = pkValueInt
+		}
+	}
+
+	pk, err := parser.NewPrimaryKey(columns, values)
+	if err != nil {
+		return parser.PrimaryKey{}, fmt.Errorf("failed to create primary key: %v", err)
+	}
+
+	return pk, nil
+}
+
+// createPgPool initializes a new PostgreSQL connection pool using configuration from environment variables.
+// ctx: The context for the pool initialization.
+func createPgPool(ctx context.Context) (*pgxpool.Pool, error) {
+	pgConfig, err := db.NewPostgresConfigFromEnvs()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Postgres config: %v", err)
+	}
+	pgPool, err := db.InitPostgresPool(ctx, pgConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Postgres pool: %v", err)
+	}
+
+	return pgPool, err
+}
+
+// createIncludedSchemas ensures that the schema of the starting table is included in the list of schemas to traverse.
+// includedSchemas: The initial slice of included schemas from command line flags.
+// schema: The schema of the starting table.
+// Returns the updated slice of included schemas.
+func createIncludedSchemas(includedSchemas []string, schema string) []string {
+	exists := false
+	for _, s := range includedSchemas {
+		if s == schema {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		includedSchemas = append(includedSchemas, schema)
+	}
+
+	return includedSchemas
+}
+
+// writeGraph writes the provided graph string to either a specified output file or standard output.
+// outputFileName: The name of the file to write to. If empty, output goes to standard output.
+// graph: The string representation of the graph to write.
+func writeGraph(outputFileName string, graph string) error {
+	var outputWriter io.Writer = os.Stdout // Default to standard output
+
+	if outputFileName != "" {
+		outputFile, err := os.Create(outputFileName)
+		if err != nil {
+			return fmt.Errorf("failed to create output file %s: %v", outputFileName, err)
+		}
+		defer outputFile.Close()
+
+		outputWriter = outputFile
+	}
+
+	fmt.Fprintln(outputWriter, graph)
+
+	return nil
+}
+
 func main() {
-	// Example:
-	// >>> go run cmd/cli/main.go traverse --table=orders --record-id=123
 	cmd := &cli.Command{
 		Name:  "traverse",
 		Usage: "traverse table and extract the given record and its related records",
@@ -70,70 +152,38 @@ func main() {
 			},
 		},
 		Action: func(ctx context.Context, c *cli.Command) error {
-			table := c.String("table")
-			schema := c.String("schema")
-			pkFields := c.StringSlice("primary-key-fields")
-			pkValues := c.StringSlice("primary-key-values")
-			includedTables := c.StringSlice("included-tables")
-			excludedTables := c.StringSlice("excluded-tables")
-			includedSchemas := c.StringSlice("included-schemas")
-			followParents := c.Bool("follow-parents")
-			followChildren := c.Bool("follow-children")
-
-			columns := make([]parser.Column, len(pkFields))
-			for i, pkField := range pkFields {
-				columns[i] = parser.Column{Name: pkField}
-			}
-			values := make([]interface{}, len(pkFields))
-			for i, pkValue := range pkValues {
-				pkValueInt, err := strconv.Atoi(pkValue)
-				if err != nil {
-					values[i] = pkValue
-				} else {
-					values[i] = pkValueInt
-				}
-			}
-
-			exists := false
-			for _, s := range includedSchemas {
-				if s == schema {
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				includedSchemas = append(includedSchemas, schema)
-			}
-
-			pgConfig, err := db.GetPostgresConfig()
+			pgPool, err := createPgPool(ctx)
 			if err != nil {
-				return fmt.Errorf("failed to get Postgres config: %v", err)
+				return fmt.Errorf("failed to create Postgres pool: %v", err)
 			}
-			pgPool, err := db.InitPostgresPool(ctx, pgConfig)
+
+			includedSchemas := createIncludedSchemas(c.StringSlice("included-schemas"), c.String("schema"))
+
+			// Construct primary key for the value we use to start traversing
+			pk, err := createPK(c.StringSlice("primary-key-fields"), c.StringSlice("primary-key-values"))
 			if err != nil {
-				return fmt.Errorf("failed to initialize Postgres pool: %v", err)
+				return fmt.Errorf("failed to create primary key: %v", err)
 			}
 
 			p, err := parser.NewParser(pgPool, parser.NewParserConfig(
 				parser.WithSchemas(includedSchemas),
-				parser.WithIncludedTables(includedTables),
-				parser.WithExcludedTables(excludedTables),
-				parser.WithFollowParents(followParents),
-				parser.WithFollowChildren(followChildren),
+				parser.WithIncludedTables(c.StringSlice("included-tables")),
+				parser.WithExcludedTables(c.StringSlice("excluded-tables")),
+				parser.WithFollowParents(c.Bool("follow-parents")),
+				parser.WithFollowChildren(c.Bool("follow-children")),
 			))
 			if err != nil {
 				return fmt.Errorf("failed to initialize parser: %v", err)
 			}
 
-			pk, err := parser.NewPrimaryKey(columns, values)
-			if err != nil {
-				return fmt.Errorf("failed to create primary key: %v", err)
-			}
-			relations, err := p.ExtractGraph(ctx, parser.Table{Name: table, Schema: schema}, pk)
+			graph, err := p.ExtractGraph(ctx, parser.Table{Name: c.String("table"), Schema: c.String("schema")}, pk)
 			if err != nil {
 				return fmt.Errorf("failed to extract records graph: %v", err)
 			}
-			fmt.Printf("relations:\n%s\n", relations)
+
+			if err := writeGraph(c.String("output"), graph); err != nil {
+				return fmt.Errorf("failed to write graph: %v", err)
+			}
 
 			return nil
 		},

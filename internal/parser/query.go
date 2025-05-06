@@ -83,7 +83,7 @@ func (p *Parser) GenerateInsertStatements(ctx context.Context, records []Record)
 					// Handle JSON data (OID 3614)
 					jsonBytes, err := json.Marshal(v)
 					if err != nil {
-						fmt.Printf("Error marshaling JSON: %v\n", err)
+						p.logger.Printf("Error marshaling JSON: %v\n", err)
 						values = append(values, fmt.Sprintf("'%v'", v))
 					} else {
 						values = append(values, fmt.Sprintf("'%s'", strings.ReplaceAll(string(jsonBytes), "'", "''")))
@@ -92,13 +92,13 @@ func (p *Parser) GenerateInsertStatements(ctx context.Context, records []Record)
 					// Handle JSON array
 					jsonBytes, err := json.Marshal(v)
 					if err != nil {
-						fmt.Printf("Error marshaling JSON array: %v\n", err)
+						p.logger.Printf("Error marshaling JSON array: %v\n", err)
 						values = append(values, fmt.Sprintf("'%v'", v))
 					} else {
 						values = append(values, fmt.Sprintf("'%s'", strings.ReplaceAll(string(jsonBytes), "'", "''")))
 					}
 				default:
-					fmt.Printf("Unknown type: %T\n", v)
+					p.logger.Printf("Unknown type: %T\n", v)
 					values = append(values, fmt.Sprintf("%v", v))
 				}
 			}

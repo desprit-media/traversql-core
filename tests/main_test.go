@@ -47,7 +47,7 @@ func TestParser(t *testing.T) {
 			},
 			{
 				name:    "self-referencing",
-				mocks:   []string{"003_self_referencing/001_tables.sql", "003_self_referencing/002_records.sql"},
+				mocks:   []string{"005_self_referencing/001_tables.sql", "005_self_referencing/002_records.sql"},
 				schemas: []string{"public"},
 				expected: []string{
 					"{persons public [{Name:person_id DataType:integer IsPrimary:true} {Name:first_name DataType:character varying IsPrimary:false} {Name:gender_id DataType:integer IsPrimary:false} {Name:parent_id DataType:integer IsPrimary:false}]}",
@@ -60,7 +60,7 @@ func TestParser(t *testing.T) {
 			_, pgPool := NewPostgresContainer(ctx, t, c.mocks...)
 			p, err := parser.NewParser(pgPool, parser.NewParserConfig(parser.WithSchemas(c.schemas)))
 			if assert.NoError(t, err, "failed to create parser for case %s", c.name) {
-				for _, table := range p.Tables {
+				for _, table := range p.TablesWithPrimaryKey {
 					assert.Contains(t, c.expected, table.String(), "unexpected table found for case %s: %s", c.name, table.String())
 				}
 			}
@@ -93,7 +93,7 @@ func TestParser(t *testing.T) {
 			},
 			{
 				name:  "self-referencing",
-				mocks: []string{"003_self_referencing/001_tables.sql", "003_self_referencing/002_records.sql"},
+				mocks: []string{"005_self_referencing/001_tables.sql", "005_self_referencing/002_records.sql"},
 				expected: []string{
 					"many-to-one | public.persons.[{Name:gender_id DataType:integer IsPrimary:false}] -> public.genders.[{Name:gender_id DataType:integer IsPrimary:true}]",
 					"self-referencing | public.persons.[{Name:parent_id DataType:integer IsPrimary:false}] -> public.persons.[{Name:person_id DataType:integer IsPrimary:true}]",
@@ -146,7 +146,7 @@ func TestParser(t *testing.T) {
 			},
 			{
 				name:  "self-referencing",
-				mocks: []string{"003_self_referencing/001_tables.sql", "003_self_referencing/002_records.sql"},
+				mocks: []string{"005_self_referencing/001_tables.sql", "005_self_referencing/002_records.sql"},
 				expected: map[string][]parser.Column{
 					"public.genders": {parser.Column{Name: "gender_id", DataType: "integer", IsPrimary: true}},
 					"public.persons": {parser.Column{Name: "person_id", DataType: "integer", IsPrimary: true}},
@@ -346,7 +346,7 @@ func TestParser(t *testing.T) {
 			},
 			{
 				name:    "self-referencing",
-				mocks:   []string{"003_self_referencing/001_tables.sql", "003_self_referencing/002_records.sql"},
+				mocks:   []string{"005_self_referencing/001_tables.sql", "005_self_referencing/002_records.sql"},
 				schemas: []string{"public"},
 				checks: []struct {
 					table   parser.Table
@@ -429,35 +429,35 @@ func TestParser(t *testing.T) {
 				error error             // this is error we expect to receive from ExtractGraph
 			}
 		}{
-			// {
-			// 	name:        "simple circular dependencies",
-			// 	tableMocks:  []string{"003_circular_simple/001_tables.sql"},
-			// 	recordMocks: []string{"003_circular_simple/002_records.sql"},
-			// 	schemas:     []string{"example"},
-			// 	checks: []struct {
-			// 		table parser.Table
-			// 		pk    parser.PrimaryKey
-			// 		sql   string
-			// 		error error
-			// 	}{
-			// 		{
-			// 			table: parser.Table{
-			// 				Name:   "persons",
-			// 				Schema: "example",
-			// 			},
-			// 			pk: parser.PrimaryKey{
-			// 				Columns: []parser.Column{
-			// 					{Name: "person_id", DataType: "integer", IsPrimary: true},
-			// 				},
-			// 				Values: []interface{}{1},
-			// 			},
-			// 			sql: "INSERT INTO example.countries (country_id, code) VALUES (1, 'USA');\n" +
-			// 				"INSERT INTO example.cars (car_id, make, country_of_origin_id) VALUES (1, 'Ford', 1);\n" +
-			// 				"INSERT INTO example.persons (person_id, first_name, country_of_origin_id, car_id) VALUES (1, 'John', 1, 1);\n",
-			// 			error: nil,
-			// 		},
-			// 	},
-			// },
+			{
+				name:        "simple circular dependencies",
+				tableMocks:  []string{"003_circular_simple/001_tables.sql"},
+				recordMocks: []string{"003_circular_simple/002_records.sql"},
+				schemas:     []string{"example"},
+				checks: []struct {
+					table parser.Table
+					pk    parser.PrimaryKey
+					sql   string
+					error error
+				}{
+					{
+						table: parser.Table{
+							Name:   "persons",
+							Schema: "example",
+						},
+						pk: parser.PrimaryKey{
+							Columns: []parser.Column{
+								{Name: "person_id", DataType: "integer", IsPrimary: true},
+							},
+							Values: []interface{}{1},
+						},
+						sql: "INSERT INTO example.countries (country_id, code) VALUES (1, 'USA');\n" +
+							"INSERT INTO example.cars (car_id, make, country_of_origin_id) VALUES (1, 'Ford', 1);\n" +
+							"INSERT INTO example.persons (person_id, first_name, country_of_origin_id, car_id) VALUES (1, 'John', 1, 1);\n",
+						error: nil,
+					},
+				},
+			},
 			// {
 			// 	name:        "circular dependencies with endless loop",
 			// 	tableMocks:  []string{"004_circular_loop/001_tables.sql"},

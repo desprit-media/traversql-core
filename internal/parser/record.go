@@ -144,7 +144,6 @@ func (p *Parser) FetchRecord(ctx context.Context, table Table, pk PrimaryKey) (R
 	whereClause, args := pk.WhereClause()
 	selectColumns := p.buildSelectColumnsQueryPart(columns)
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s", selectColumns, table.FullName(), whereClause)
-	p.logger.Printf("FIND RECORD QUERY: %s, pk: %+v", query, args)
 
 	if !p.hasRecordVisit(query, args) {
 		p.RecordVisits = append(p.RecordVisits, RecordVisit{Query: query, Args: args})
@@ -225,7 +224,6 @@ func (p *Parser) findChildRecords(ctx context.Context, rel Relationship, parentP
 		strings.Join(selectColumns, ", "),
 		rel.SourceTable.FullName(),
 		strings.Join(conditions, " AND "))
-	p.logger.Printf("FIND CHILD RECORDS QUERY: %s, pk: %+v", query, parentPKValues)
 
 	rows, err := p.pool.Query(ctx, query, parentPKValues...)
 	if err != nil {

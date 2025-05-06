@@ -97,7 +97,7 @@ func (p *Parser) discoverTablePKColumn(table Table) ([]Column, error) {
 	return pkColumns, nil
 }
 
-func (p *Parser) discoverTables(ctx context.Context) ([]Table, error) {
+func (p *Parser) discoverTables(ctx context.Context) ([]Table, []Table, error) {
 	query := `
         SELECT
             table_schema,
@@ -108,20 +108,19 @@ func (p *Parser) discoverTables(ctx context.Context) ([]Table, error) {
             table_schema = ANY($1)
             AND table_type = 'BASE TABLE'
     `
-
 	rows, err := p.pool.Query(ctx, query, p.config.Schemas)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query tables: %w", err)
+		return nil, nil, fmt.Errorf("failed to query tables: %w", err)
 	}
 	defer rows.Close()
+	var tablesWithPrimaryKey []Table
+	var tablesWithoutPrimaryKey []Table
 
-	var tables []Table
 	for rows.Next() {
 		var schema, name string
 		if err := rows.Scan(&schema, &name); err != nil {
-			return nil, fmt.Errorf("failed to scan table row: %w", err)
+			return nil, nil, fmt.Errorf("failed to scan table row: %w", err)
 		}
-
 		// Skip excluded tables
 		if contains(p.config.ExcludedTables, name) {
 			continue
@@ -130,30 +129,47 @@ func (p *Parser) discoverTables(ctx context.Context) ([]Table, error) {
 		if len(p.config.IncludedTables) > 0 && !contains(p.config.IncludedTables, name) {
 			continue
 		}
-
 		table := Table{
 			Schema: schema,
 			Name:   name,
 		}
-
 		columns, err := table.getColumns(ctx, p.pool)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get columns for table %s: %w", table.FullName(), err)
+			return nil, nil, fmt.Errorf("failed to get columns for table %s: %w", table.FullName(), err)
 		}
 		table.Columns = columns
 
-		tables = append(tables, table)
+		// Check if the table has a primary key
+		hasPrimaryKey := false
+		for _, col := range columns {
+			if col.IsPrimary {
+				hasPrimaryKey = true
+				break
+			}
+		}
+
+		// Add to appropriate slice based on primary key presence
+		if hasPrimaryKey {
+			tablesWithPrimaryKey = append(tablesWithPrimaryKey, table)
+		} else {
+			tablesWithoutPrimaryKey = append(tablesWithoutPrimaryKey, table)
+		}
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating table rows: %w", err)
+		return nil, nil, fmt.Errorf("error iterating table rows: %w", err)
 	}
 
-	return tables, nil
+	return tablesWithPrimaryKey, tablesWithoutPrimaryKey, nil
 }
 
 func (p *Parser) getTable(schema, name string) (Table, error) {
-	for _, table := range p.Tables {
+	for _, table := range p.TablesWithPrimaryKey {
+		if table.Schema == schema && table.Name == name {
+			return table, nil
+		}
+	}
+	for _, table := range p.TablesWithoutPrimaryKey {
 		if table.Schema == schema && table.Name == name {
 			return table, nil
 		}
@@ -162,7 +178,12 @@ func (p *Parser) getTable(schema, name string) (Table, error) {
 }
 
 func (p *Parser) getColumnsForTable(ctx context.Context, table Table) ([]Column, error) {
-	for _, t := range p.Tables {
+	for _, t := range p.TablesWithPrimaryKey {
+		if t.FullName() == table.FullName() {
+			return t.Columns, nil
+		}
+	}
+	for _, t := range p.TablesWithoutPrimaryKey {
 		if t.FullName() == table.FullName() {
 			return t.Columns, nil
 		}

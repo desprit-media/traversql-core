@@ -18,7 +18,10 @@ func NewPostgresContainer(ctx context.Context, t *testing.T, initFilePath ...str
 		postgres.WithPassword("test"),
 		postgres.WithDatabase("test"),
 		postgres.WithInitScripts(initFilePath...),
-		testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").WithOccurrence(2).WithStartupTimeout(time.Second*5)),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(time.Second*5)),
 	)
 	if err != nil {
 		t.Fatalf("Failed to start postgres container: %v", err)

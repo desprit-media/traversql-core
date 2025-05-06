@@ -178,30 +178,6 @@ func (p *Parser) discoverRelationships(ctx context.Context) ([]Relationship, err
 		}
 
 		relationships = append(relationships, rel)
-
-		// // Also add an inverse relationship for the target table
-		// var inverseRelType RelationType
-		// switch relType {
-		// case OneToMany:
-		// 	inverseRelType = ManyToOne
-		// case ManyToOne:
-		// 	inverseRelType = OneToMany
-		// case OneToOne:
-		// 	inverseRelType = OneToOne
-		// case ManyToMany:
-		// 	inverseRelType = ManyToMany
-		// case SelfReferencing:
-		// 	inverseRelType = SelfReferencing
-		// }
-		// inverseRel := Relationship{
-		// 	SourceTable:  targetTableObj,
-		// 	SourceColumn: []Column{targetCol},
-		// 	TargetTable:  sourceTableObj,
-		// 	TargetColumn: []Column{sourceCol},
-		// 	RelationType: inverseRelType,
-		// }
-
-		// relationships = append(relationships, inverseRel)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -212,12 +188,10 @@ func (p *Parser) discoverRelationships(ctx context.Context) ([]Relationship, err
 }
 
 func (s *Parser) addRelationshipVisit(from, to Table) {
-	fmt.Printf("ADDING VISIT FROM %s TO %s\n", from.FullName(), to.FullName())
 	s.RelationshipVisits = append(s.RelationshipVisits, RelationshipVisit{TableFrom: from, TableTo: to})
 }
 
 func (s *Parser) hasRelationshipVisit(from, to Table) bool {
-	fmt.Printf("CHECKING VISIT FROM %s TO %s\n", from.FullName(), to.FullName())
 	for _, visit := range s.RelationshipVisits {
 		if visit.TableFrom.Name == from.Name && visit.TableTo.Name == to.Name {
 			return true

@@ -62,8 +62,3 @@ func WithFollowChildren(follow bool) ConfigOpt {
 		c.FollowChildren = follow
 	}
 }
-
-// TODO
-// Validation of the database connection:
-// live
-// user has access to all schemas and all tables
