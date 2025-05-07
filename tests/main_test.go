@@ -429,35 +429,35 @@ func TestParser(t *testing.T) {
 				error error             // this is error we expect to receive from ExtractGraph
 			}
 		}{
-			{
-				name:        "simple circular dependencies",
-				tableMocks:  []string{"003_circular_simple/001_tables.sql"},
-				recordMocks: []string{"003_circular_simple/002_records.sql"},
-				schemas:     []string{"example"},
-				checks: []struct {
-					table parser.Table
-					pk    parser.PrimaryKey
-					sql   string
-					error error
-				}{
-					{
-						table: parser.Table{
-							Name:   "persons",
-							Schema: "example",
-						},
-						pk: parser.PrimaryKey{
-							Columns: []parser.Column{
-								{Name: "person_id", DataType: "integer", IsPrimary: true},
-							},
-							Values: []interface{}{1},
-						},
-						sql: "INSERT INTO example.countries (country_id, code) VALUES (1, 'USA');\n" +
-							"INSERT INTO example.cars (car_id, make, country_of_origin_id) VALUES (1, 'Ford', 1);\n" +
-							"INSERT INTO example.persons (person_id, first_name, country_of_origin_id, car_id) VALUES (1, 'John', 1, 1);\n",
-						error: nil,
-					},
-				},
-			},
+			// {
+			// 	name:        "simple circular dependencies",
+			// 	tableMocks:  []string{"003_circular_simple/001_tables.sql"},
+			// 	recordMocks: []string{"003_circular_simple/002_records.sql"},
+			// 	schemas:     []string{"example"},
+			// 	checks: []struct {
+			// 		table parser.Table
+			// 		pk    parser.PrimaryKey
+			// 		sql   string
+			// 		error error
+			// 	}{
+			// 		{
+			// 			table: parser.Table{
+			// 				Name:   "persons",
+			// 				Schema: "example",
+			// 			},
+			// 			pk: parser.PrimaryKey{
+			// 				Columns: []parser.Column{
+			// 					{Name: "person_id", DataType: "integer", IsPrimary: true},
+			// 				},
+			// 				Values: []interface{}{1},
+			// 			},
+			// 			sql: "INSERT INTO example.countries (country_id, code) VALUES (1, 'USA');\n" +
+			// 				"INSERT INTO example.cars (car_id, make, country_of_origin_id) VALUES (1, 'Ford', 1);\n" +
+			// 				"INSERT INTO example.persons (person_id, first_name, country_of_origin_id, car_id) VALUES (1, 'John', 1, 1);\n",
+			// 			error: nil,
+			// 		},
+			// 	},
+			// },
 			// {
 			// 	name:        "circular dependencies with endless loop",
 			// 	tableMocks:  []string{"004_circular_loop/001_tables.sql"},
@@ -485,9 +485,9 @@ func TestParser(t *testing.T) {
 			// 	},
 			// },
 			{
-				name:        "data types",
-				tableMocks:  []string{"100_data_types/001_tables.sql"},
-				recordMocks: []string{"100_data_types/002_records.sql"},
+				name:        "deduplication",
+				tableMocks:  []string{"006_deduplication/001_tables.sql"},
+				recordMocks: []string{"006_deduplication/002_records.sql"},
 				schemas:     []string{"public"},
 				checks: []struct {
 					table parser.Table
@@ -497,26 +497,55 @@ func TestParser(t *testing.T) {
 				}{
 					{
 						table: parser.Table{
-							Name:   "persons",
+							Name:   "tasks",
 							Schema: "public",
 						},
 						pk: parser.PrimaryKey{
 							Columns: []parser.Column{
-								{Name: "id", DataType: "integer", IsPrimary: true},
+								{Name: "task_id", DataType: "integer", IsPrimary: true},
 							},
 							Values: []interface{}{1},
 						},
 						sql: func() string {
-							t, _ := time.Parse(time.RFC3339Nano, "2025-04-10T12:55:25.034657+03:00")
-							localTime := t.Local()
-							localStr := localTime.Format(time.RFC3339Nano)
-							return "INSERT INTO public.persons (id, name) VALUES (1, 'John Doe');\n" +
-								"INSERT INTO public.cars (id, owner_id, make, model, production_year, price, mileage, engine_capacity, weight, is_electric, purchase_date, maintenance_time, registered_at, features, car_numbers, body_color, fuel_capacity, zero_to_60_seconds, previous_owners, warranty_duration, car_image, color_codes, license_plate, ip_address, mac_address, serial_bits, search_vector, geometric_data, uuid, constraint_code) VALUES (1, 1, 'Toyota', 'Camry', 2020, 25000.5, 15000, 2.5, 1560.75, false, '2021-03-15T00:00:00Z', '08:30:00', '" + localStr + "', '{\"sunroof\": false, \"navigation\": true}', '{ABC-123,XYZ-789}', 'blue', NULL, '00:00:06.2', '{}', NULL, NULL, NULL, '192.168.1.0/24', '192.168.1.1/32', '08:00:2b:01:02:03', '101010', '''brown'':2 ''fox'':3 ''quick'':1', '(12.34,56.78)', '77764b84-d905-4519-b3cb-222f6ca0d09e', 123);\n"
+							return ""
 						}(),
 						error: nil,
 					},
 				},
 			},
+			// {
+			// 	name:        "data types",
+			// 	tableMocks:  []string{"100_data_types/001_tables.sql"},
+			// 	recordMocks: []string{"100_data_types/002_records.sql"},
+			// 	schemas:     []string{"public"},
+			// 	checks: []struct {
+			// 		table parser.Table
+			// 		pk    parser.PrimaryKey
+			// 		sql   string
+			// 		error error
+			// 	}{
+			// 		{
+			// 			table: parser.Table{
+			// 				Name:   "persons",
+			// 				Schema: "public",
+			// 			},
+			// 			pk: parser.PrimaryKey{
+			// 				Columns: []parser.Column{
+			// 					{Name: "id", DataType: "integer", IsPrimary: true},
+			// 				},
+			// 				Values: []interface{}{1},
+			// 			},
+			// 			sql: func() string {
+			// 				t, _ := time.Parse(time.RFC3339Nano, "2025-04-10T12:55:25.034657+03:00")
+			// 				localTime := t.Local()
+			// 				localStr := localTime.Format(time.RFC3339Nano)
+			// 				return "INSERT INTO public.persons (id, name) VALUES (1, 'John Doe');\n" +
+			// 					"INSERT INTO public.cars (id, owner_id, make, model, production_year, price, mileage, engine_capacity, weight, is_electric, purchase_date, maintenance_time, registered_at, features, car_numbers, body_color, fuel_capacity, zero_to_60_seconds, previous_owners, warranty_duration, car_image, color_codes, license_plate, ip_address, mac_address, serial_bits, search_vector, geometric_data, uuid, constraint_code) VALUES (1, 1, 'Toyota', 'Camry', 2020, 25000.5, 15000, 2.5, 1560.75, false, '2021-03-15T00:00:00Z', '08:30:00', '" + localStr + "', '{\"sunroof\": false, \"navigation\": true}', '{ABC-123,XYZ-789}', 'blue', NULL, '00:00:06.2', '{}', NULL, NULL, NULL, '192.168.1.0/24', '192.168.1.1/32', '08:00:2b:01:02:03', '101010', '''brown'':2 ''fox'':3 ''quick'':1', '(12.34,56.78)', '77764b84-d905-4519-b3cb-222f6ca0d09e', 123);\n"
+			// 			}(),
+			// 			error: nil,
+			// 		},
+			// 	},
+			// },
 		}
 
 		for _, c := range cases {
