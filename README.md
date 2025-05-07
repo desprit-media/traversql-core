@@ -1,4 +1,5 @@
 [![Go-1.23](https://img.shields.io/badge/go-v1.23-blue)](https://go.dev/)
+[![Postgres-16](https://img.shields.io/badge/postgres-16-1f425f.svg)](https://www.postgresql.org.pl/)
 
 # Traversql
 
