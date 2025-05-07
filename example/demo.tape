@@ -4,23 +4,23 @@ Require echo
 Require docker
 
 Set Shell "bash"
-Set FontSize 24
+Set FontSize 20
 Set Width 1200
-Set Height 600
+Set Height 800
 Set Theme "GruvboxDark"
-Set Padding 8
-Set Margin 24
+Set Padding 16
+Set Margin 18
 Set BorderRadius 10
-Set MarginFill "#000040"
+Set MarginFill "#141414"
 Set WindowBar Colorful
 
 Type "docker pull postgres:16"
 Enter
-Sleep 1s
+Sleep 3s
 
-Type "docker run --name postgres-traversql-example -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_USER=myuser -e POSTGRES_DB=mydb -p 5432:5432 -d postgres:16"
+Type@20ms "docker run --name postgres-traversql-example -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_USER=myuser -e POSTGRES_DB=mydb -p 5432:5432 -d postgres:16"
 Enter
-Sleep 1s
+Sleep 3s
 
 Type "docker cp schema.sql postgres-traversql-example:/schema.sql"
 Enter
@@ -38,10 +38,20 @@ Type "docker exec -it postgres-traversql-example psql -U myuser -d mydb -f /data
 Enter
 Sleep 2s
 
-Type "POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=myuser POSTGRES_PASSWORD=mysecretpassword POSTGRES_DB=mydb go run github.com/desprit-media/traversql-core/cmd/traversql@v0.0.3 traverse --table=order_items --pk-fields=order_item_id --pk-values=1 --output=out.sql"
+Type@20ms "export POSTGRES_HOST=localhost"
 Enter
-Sleep 2s
+Type@20ms "export POSTGRES_PORT=5432"
+Enter
+Type@20ms "export POSTGRES_USER=myuser"
+Enter
+Type@20ms "export POSTGRES_PASSWORD=mysecretpassword"
+Enter
+Type@20ms "export POSTGRES_DB=mydb"
+Enter
+Type "go run github.com/desprit-media/traversql-core/cmd/traversql@latest traverse --table=order_items --pk-fields=order_item_id --pk-values=1 --output=out.sql"
+Enter
+Sleep 3s
 
 Type "cat out.sql"
 Enter
-Sleep 3s
+Sleep 6s

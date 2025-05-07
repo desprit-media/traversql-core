@@ -10,13 +10,13 @@
 Setup `PostgreSQL`:
 
 ```bash
-./run.sh
+./setup.sh
 ```
 
 Extract records:
 
 ```bash
-POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=myuser POSTGRES_PASSWORD=mysecretpassword POSTGRES_DB=mydb go run github.com/desprit-media/traversql-core/cmd/traversql@v0.0.3 traverse --table=order_items --pk-fields=order_item_id --pk-values=1
+POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=myuser POSTGRES_PASSWORD=mysecretpassword POSTGRES_DB=mydb go run github.com/desprit-media/traversql-core/cmd/traversql@latest traverse --table=order_items --pk-fields=order_item_id --pk-values=1
 ```
 
 ```sql
@@ -69,5 +69,5 @@ docker exec -it postgres-traversql-example psql -U myuser -d mydb -f /data.sql
 Extract records:
 
 ```bash
-POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=myuser POSTGRES_PASSWORD=mysecretpassword POSTGRES_DB=mydb go run github.com/desprit-media/traversql-core/cmd/traversql@v0.0.3 traverse --table=order_items --pk-fields=order_item_id --pk-values=1
+POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=myuser POSTGRES_PASSWORD=mysecretpassword POSTGRES_DB=mydb go run github.com/desprit-media/traversql-core/cmd/traversql@latest traverse --table=order_items --pk-fields=order_item_id --pk-values=1
 ```
