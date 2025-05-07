@@ -1,3 +1,5 @@
+[![Go-1.23](https://img.shields.io/badge/go-v1.23-blue)](https://go.dev/)
+
 # Traversql
 
 Traversql allows you to start from a specific record in a database table and traverse through its relationships (both parent and child) to extract a graph of connected records. This can be useful for understanding data dependencies, debugging, or generating test data.
@@ -11,7 +13,7 @@ This application is currently in a very early build stage and should be used wit
 ### Prerequisites
 
 - Go (tested version 1.23)
-- Access to PostgreSQL
+- Access to PostgreSQL (tested version 16)
 - The following environment variables must be set for the database connection:
   - `POSTGRES_HOST`
   - `POSTGRES_PORT`
